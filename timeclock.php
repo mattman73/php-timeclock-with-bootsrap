@@ -126,17 +126,18 @@ if (($display_current_users == "yes") && ($display_office == "all") && ($display
     $result = mysqli_query($GLOBALS["___mysqli_ston"], $query);
 }
 
+$defaulttimezone = date_default_timezone_get();
 $time = time();
-$tclock_hour = gmdate('H',$time);
-$tclock_min = gmdate('i',$time);
-$tclock_sec = gmdate('s',$time);
-$tclock_month = gmdate('m',$time);
-$tclock_day = gmdate('d',$time);
-$tclock_year = gmdate('Y',$time);
+$tclock_hour = date('H',$time);
+$tclock_min = date('i',$time);
+$tclock_sec = date('s',$time);
+$tclock_month = date('m',$time);
+$tclock_day = date('d',$time);
+$tclock_year = date('Y',$time);
 // $tclock_stamp = mktime($tclock_hour, $tclock_min, $tclock_sec, $tclock_month, $tclock_day, $tclock_year);
 $tclock_stamp = time($tclock_hour, $tclock_min, $tclock_sec, $tclock_month, $tclock_day, $tclock_year);
 
-$tclock_stamp = $tclock_stamp + @$tzo;
+//$tclock_stamp = $tclock_stamp;
 $tclock_time = date($timefmt, $tclock_stamp);
 $tclock_date = date($datefmt, $tclock_stamp);
 $report_name="Current Status Report";
@@ -145,7 +146,7 @@ echo '  <!-- start misc -->
 	<section class="content-header">
 	      <h1>'
 	        .$report_name.
-	        '<small>As of: '.$tclock_time.', '.$tclock_date.'</small>
+	        '<small> As of: '.$tclock_time.', '.$tclock_date.'</small>
 	      </h1>
 	    </section>';
 
