@@ -24,7 +24,7 @@
  * This module creates the navigation interface for the top level directory.
  */
 
-
+date_default_timezone_set("Europe/London");
 
 echo '
 <!-- Main Header -->
@@ -38,7 +38,7 @@ echo '    <!-- Logo -->
       <span class="logo-mini"><b>A</b><i class="fa fa-clock-o"></i></span>
       <!-- logo for regular state and mobile devices -->';
 if ($logo == "none") {     echo '<span class="logo-lg"><b>PHP</b> <i class="fa fa-clock-o"></i> Timeclock</span></a>'; }
-else { echo "<span class='logo-lg'><img border='0' src='$logo'></span></a>"; }
+else { echo "<span class='logo-lg'><img border='0' src='$logo' style='width:200px;height:50px;'></span></a>"; }
 
 include '../theme/templates/topnavpart1.inc';
 
@@ -89,6 +89,7 @@ echo "
 
 echo "
                <li><a href='../index.php'><i class='fa fa-home'></i> Home</a></li>
+               <li><a href='../timeclock.php'><i class='fa fa-refresh fa-spin fa-lg fa-fw'></i> Status</a></li>
                <li><a href='../login.php?login_action=admin'><i class='fa fa-globe'></i> Administration</a></li>";
 
 if ($use_reports_password == "yes") {

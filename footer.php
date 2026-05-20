@@ -44,13 +44,13 @@ if (! empty($email) && ($email != "none")) {
 // Determine if the application information is set
 if (empty($company_name) || empty($app_version)) {
     echo "
-               <a class=footer_links href='https://github.com/hjelmua/php-timeclock-with-bootsrap' target='_blank'>Powered by PhpTimeClock</a>";
+               <a class=footer_links target='_blank'>Powered by PhpTimeClock</a>";
 } else {
     echo "
-               <a class=footer_links href='https://github.com/hjelmua/php-timeclock-with-bootsrap' target='_blank'> $company_name is Powered by PhpTimeClock $app_version</a>";
+               <a class=footer_links target='_blank'> $company_name is Powered by TimeClock $app_version</a>";
 }
 
-echo '
+/* echo '
 	</div>
 <!-- Default to the left -->
 
@@ -59,7 +59,7 @@ Powered by <a class="footer_links" href="http://nginx.org/">NGINX</a> &nbsp;&#17
 
  </footer>
 ';
-
+*/
 // Finish up the HTML to make it valid
 
 ?>

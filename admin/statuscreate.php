@@ -315,6 +315,6 @@ echo "              <tr><td height=20 align=left>&nbsp;</td></tr>\n";
 echo "              <tr><td><a href='statusadmin.php'><img src='../images/buttons/done_button.png'
                       border='0'></a></td></tr></table>\n";
 }
-include '../footer.php'; exit;
+//include '../footer.php'; exit;
 }
 ?>

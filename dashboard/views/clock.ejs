@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/static/css/kiosk.css">
+</head>
+<body class="kiosk">
+
+<header class="kiosk-head">
+    <div class="brand">
+        <img src="/static/img/jondo-logo.png" alt="Jondo" class="brand-logo">
+        <span class="brand-text">Time Clock</span>
+    </div>
+    <div id="digital-time">--:--:--</div>
+    <div id="datebox"></div>
+</header>
+
+<main class="kiosk-main">
+    <div class="clock-col">
+        <% if (typeof cameraUrl !== 'undefined' && cameraUrl) { %>
+            <div class="cam-wrap">
+                <img id="camFeed" class="cam-feed" src="<%= cameraUrl %>" alt="Camera">
+                <div id="camDown" class="cam-down" style="display:none">
+                    Camera offline
+                </div>
+            </div>
+            <p class="cam-hint">Stand in the frame &mdash; the box turns green when you're recognised.</p>
+        <% } else { %>
+            <canvas id="analog" width="260" height="260"></canvas>
+        <% } %>
+        <div id="digital" class="digital">--:--:--</div>
+    </div>
+
+    <div class="scan-col">
+        <h1>Welcome to Jondo &mdash; <span class="accent">scan your badge to clock in</span></h1>
+        <% if (flash) { %>
+            <div class="kiosk-flash <%= isError ? 'err' : 'ok' %>"><%= flash %></div>
+        <% } %>
+        <form method="post" action="/" autocomplete="off" id="badgeForm">
+            <input type="text"
+                   name="BadgeID"
+                   id="BadgeID"
+                   class="badge-input"
+                   autofocus
+                   autocomplete="off"
+                   inputmode="numeric"
+                   placeholder=""
+                   value="">
+            <input type="text"
+                   name="notes"
+                   id="notes"
+                   class="notes-input"
+                   placeholder="Optional note (e.g. appointment, sick)"
+                   maxlength="240">
+            <button type="submit" class="kiosk-btn">Submit</button>
+        </form>
+        <p class="hint">
+            No badge?
+            <a href="/password">Sign in with username &amp; password</a>
+        </p>
+    </div>
+</main>
+
+<script>
+// Keep focus on the badge field at all times — most barcode scanners
+// emit keystrokes followed by Enter, so as long as the field has
+// focus the form submits automatically.
+(function () {
+    var input = document.getElementById('BadgeID');
+    function refocus() {
+        if (document.activeElement && document.activeElement.id === 'notes') return;
+        input.focus();
+    }
+    input.focus();
+    setInterval(refocus, 750);
+    document.addEventListener('click', refocus);
+})();
+
+// Camera feed health — if the MJPEG stream drops, show an
+// "offline" message and keep retrying so it recovers on its own
+// when the Pi scanner comes back.
+(function () {
+    var feed = document.getElementById('camFeed');
+    var down = document.getElementById('camDown');
+    if (!feed) return;
+    feed.addEventListener('error', function () {
+        feed.style.display = 'none';
+        if (down) down.style.display = 'flex';
+        setTimeout(function () {
+            // Cache-bust the URL so the browser actually re-requests.
+            var base = feed.src.split('?')[0];
+            feed.src = base + '?t=' + Date.now();
+        }, 4000);
+    });
+    feed.addEventListener('load', function () {
+        feed.style.display = '';
+        if (down) down.style.display = 'none';
+    });
+})();
+
+// Analog clock — only runs when the canvas is present (i.e. no
+// camera feed configured).
+(function () {
+    var canvas = document.getElementById('analog');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var radius = canvas.height / 2;
+    ctx.translate(radius, radius);
+    radius = radius * 0.90;
+
+    function drawFace(ctx, r) {
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, 2 * Math.PI);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        var grad = ctx.createRadialGradient(0, 0, r * 0.95, 0, 0, r * 1.05);
+        grad.addColorStop(0, '#1180BD');
+        grad.addColorStop(0.5, '#fff');
+        grad.addColorStop(1, '#1180BD');
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = r * 0.1;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.1, 0, 2 * Math.PI);
+        ctx.fillStyle = '#1180BD';
+        ctx.fill();
+    }
+    function drawNumbers(ctx, r) {
+        ctx.font = (r * 0.15) + "px Arial";
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "center";
+        ctx.fillStyle = '#1a1a1a';
+        for (var num = 1; num < 13; num++) {
+            var ang = num * Math.PI / 6;
+            ctx.rotate(ang);
+            ctx.translate(0, -r * 0.85);
+            ctx.rotate(-ang);
+            ctx.fillText(num.toString(), 0, 0);
+            ctx.rotate(ang);
+            ctx.translate(0, r * 0.85);
+            ctx.rotate(-ang);
+        }
+    }
+    function drawHand(ctx, pos, length, width, color) {
+        ctx.beginPath();
+        ctx.lineWidth = width;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = color || '#1a1a1a';
+        ctx.moveTo(0, 0);
+        ctx.rotate(pos);
+        ctx.lineTo(0, -length);
+        ctx.stroke();
+        ctx.rotate(-pos);
+    }
+    function drawTime(ctx, r) {
+        var now = new Date();
+        var hour = now.getHours() % 12;
+        var minute = now.getMinutes();
+        var second = now.getSeconds();
+        hour = (hour * Math.PI / 6) + (minute * Math.PI / (6 * 60)) + (second * Math.PI / (360 * 60));
+        drawHand(ctx, hour, r * 0.5, r * 0.07, '#1a1a1a');
+        var minAng = (minute * Math.PI / 30) + (second * Math.PI / (30 * 60));
+        drawHand(ctx, minAng, r * 0.8, r * 0.07, '#1a1a1a');
+        var secAng = (second * Math.PI / 30);
+        drawHand(ctx, secAng, r * 0.9, r * 0.02, '#E84855');
+    }
+    function drawClock() {
+        ctx.clearRect(-radius * 1.2, -radius * 1.2, radius * 2.4, radius * 2.4);
+        drawFace(ctx, radius);
+        drawNumbers(ctx, radius);
+        drawTime(ctx, radius);
+    }
+    drawClock();
+    setInterval(drawClock, 1000);
+})();
+
+// Digital clock + date strip
+(function () {
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    function nth(d) {
+        if (d > 3 && d < 21) return 'th';
+        switch (d % 10) { case 1: return 'st'; case 2: return 'nd'; case 3: return 'rd'; default: return 'th'; }
+    }
+    function tick() {
+        var now = new Date();
+        var time = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+        var date = days[now.getDay()] + ', ' + now.getDate() + nth(now.getDate()) + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+        var d1 = document.getElementById('digital');
+        if (d1) d1.textContent = time;
+        var d2 = document.getElementById('digital-time');
+        if (d2) d2.textContent = time;
+        var db = document.getElementById('datebox');
+        if (db) db.textContent = date;
+    }
+    tick();
+    setInterval(tick, 1000);
+})();
+</script>
+
+</body>
+</html>

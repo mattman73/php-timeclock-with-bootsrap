@@ -36,9 +36,9 @@
         --- $db_name is the mysql database you created during the install. */
 
 $db_hostname = "localhost";
-$db_username = "phptimeclock";
-$db_password = "";
-$db_name = "phptimeclock";
+$db_username = "timeclock";
+$db_password = "Fred1234";
+$db_name = "timeclock";
 
 
 /* --- RECOMMENDED CHANGES --- */
@@ -96,7 +96,7 @@ $disable_sysedit = "no";
 "yes" or "no". If "yes" is chosen, users will be required to enter a password
 whenever they change their status. Default is "no". */
 
-$use_passwd = "yes";
+$use_passwd = "no";
 
 
 /* If you only want certain users to have the ability to view and run the reports,
@@ -109,7 +109,7 @@ $use_reports_password = "yes";
 punch-in/out, or when a time is manually added, edited, or deleted. Default is
 "yes". */
 
-$ip_logging = "yes";
+$ip_logging = "no";
 
 
 /* A management contact E-mail address to display in the footer of the timeclock.
@@ -222,7 +222,7 @@ $display_group_name = "no";
 /* A logo or graphic, this is displayed in the top left of each page.
 Set it to "none" to ignore this option. */
 
-$logo = "none";
+$logo = "images\\logos\\Jondo Uk Logo.png";
 
 
 /* This sets the refresh rate (in seconds) for index.php. If the application is kept open,
@@ -266,7 +266,7 @@ $display_notes = "yes";
 /* This creates a clickable date in the top right of each page. By Default, it links to
 "This Day in History" on the historychannel.com website. Set it to "none" to ignore this option. */
 
-$date_link = "http://www.historychannel.com/tdih";
+$date_link = "";
 
 
 /* These are alternating row colors for the main page and for reports. */
@@ -280,7 +280,7 @@ topleft side of each page (leftmain.php). These links can link to anything you w
 them to -- websites, other web-based applications, etc. Default number of links is 6.
 Set $links to "none" to ignore this option. Ex: $links = "none"; */
 
-$links = array("https://github.com/hjelmua/php-timeclock-with-bootsrap");
+$links = "none";
 
 
 /* Insert/change/delete below the display names for the links you inserted above.
@@ -291,7 +291,7 @@ $display_links = array("Development Site");
 
 /* The message of the day to display to all employee's. Set to "none" to disable. */
 
-$message_of_the_day = "Using PhpTimeClock two times a day keeps the doctor away.";
+$message_of_the_day = "none";
 
 
 /* --- REPORTING INFO --- */
@@ -365,7 +365,7 @@ $display_ip = "yes";
 /* Reports can be exported to a comma delimited file (.csv). Setting this to "yes" will
 export the reports to .csv files. Default is "no" */
 
-$export_csv = "no";
+$export_csv = "yes";
 
 
 /* Sets the number of hours after which are considered overtime. Setting the number to
@@ -388,7 +388,7 @@ $use_client_tz = "no";
 
 /* To display the punch-in/out times in the timezone of the web server, leave this option set
 to "yes". Setting this option to "no" AND setting the above $use_client_tz option to "no",
-will display the punch-in/out times in GMT. Default is "no". PHP is now supposed to handle this */
+will display the punch-in/out times in GMT. Default is "yes". */
 
 $use_server_tz = "no";
 
@@ -418,12 +418,12 @@ $metar = "ESSA";
 the ICAO used above. The max length for this field is 100 characters.
 If $display_weather is set to "no", this option is ignored. */
 
-$city = "Uppsala, Sweden";
+$city = "Europe/London";
 
 
 /* The name of the company whose hours are being tracked. */
 
-$company_name = "Hjelms";
+$company_name = "Jondo UK ltd";
 
 
 /* Sets the title in the header. This is what the page will be named by default when you
@@ -443,9 +443,4 @@ $dbversion = "1.4";
 /* Application version. */
 
 $app_version = "1.1.0";
-
-/* test date format for validatedate*/
-
-$eurodateformat = "d/m/Y";
-$usdateformat = "m/d/Y";
 ?>

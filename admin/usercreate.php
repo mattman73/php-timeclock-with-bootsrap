@@ -57,13 +57,15 @@ echo "              <tr><td class=table_rows height=25 width=20% style='padding-
                       <input type='text' size='25' maxlength='50' name='post_username'>&nbsp;*</td></tr>\n";
 echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Display Name:</td><td colspan=2 width=80%>
                       <input type='text' size='25' maxlength='50' name='display_name'>&nbsp;*</td></tr>\n";
+echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Badge Number:</td><td colspan=2 width=80%>
+                      <input type='text' size='25' maxlength='50' name='Badge_ID'>&nbsp;*</td></tr>\n";
 echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Password:</td><td colspan=2 width=80%
                       style='padding-left:20px;'><input type='password' size='25' maxlength='25' name='password'></td></tr>\n";
 echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Confirm Password:</td><td colspan=2 width=80%
                       style='padding-left:20px;'>
                       <input type='password' size='25' maxlength='25' name='confirm_password'></td></tr>\n";
 echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Email Address:</td><td colspan=2 width=80%>
-                      <input type='text' size='25' maxlength='75' name='email_addy'>&nbsp;*</td></tr>\n";
+                      <input type='text' size='25' maxlength='75' name='email_addy'></td></tr>\n";
 echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Office:</td><td colspan=2 width=80%>
                       <select name='office_name' onchange='group_names();'>\n";
 echo "                      </select>&nbsp;*</td></tr>\n";
@@ -103,6 +105,7 @@ include 'header_post.php'; include 'topmain.php'; include 'leftmain.php';
 
 $post_username = stripslashes($_POST['post_username']);
 $display_name = stripslashes($_POST['display_name']);
+$BadgeID = ($_POST['Badge_ID']);
 $password = $_POST['password'];
 $confirm_password = $_POST['confirm_password'];
 $email_addy = $_POST['email_addy'];
@@ -129,6 +132,9 @@ $display_name = stripslashes($display_name);
 
 $string = strstr($post_username, "\"");
 $string2 = strstr($display_name, "\"");
+if ($email_addy==""){
+  $email_addy="none@none.co.uk";
+}
 
 if ((@$tmp_username == $post_username) || ($password !== $confirm_password) ||
     (!preg_match('/' . "^([[:alnum:]]| |-|'|,)+$" . '/i', $post_username)) || (!preg_match('/' . "^([[:alnum:]]|Å|Ä|Ö|å|ä|ö| |-|'|,)+$" . '/i', $display_name)) || (empty($post_username)) ||
@@ -162,6 +168,14 @@ elseif (empty($display_name)) {
                  A Display Name is required.
               </div></div>';
 }
+elseif (empty($BadgeID)) {
+	
+	echo ' <div class="col-md-4"><div class="alert alert-warning alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                <h4><i class="icon fa fa-warning"></i> Alert!</h4>
+                 A Badge number is required.
+              </div></div>';
+}
 elseif (!empty($string)) {
 	
 	echo ' <div class="col-md-4"><div class="alert alert-warning alert-dismissible">
@@ -176,14 +190,6 @@ elseif (!empty($string2)) {
                 <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
                 <h4><i class="icon fa fa-warning"></i> Alert!</h4>
                   Double Quotes are not allowed when creating an Display Name.
-              </div></div>';
-}
-elseif (empty($email_addy)) {
-	
-	echo ' <div class="col-md-4"><div class="alert alert-warning alert-dismissible">
-                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-                <h4><i class="icon fa fa-warning"></i> Alert!</h4>
-                  An Email Address is required.
               </div></div>';
 }
 elseif (empty($office_name)) {
@@ -303,8 +309,6 @@ if (!empty($string2)) {$display_name = stripslashes($display_name);}
 $password = crypt($password, 'xy');
 $confirm_password = crypt($confirm_password, 'xy');
 
-
-
 echo '<div class="row">
     <div class="col-md-8">
       <div class="box box-info"> ';
@@ -396,13 +400,18 @@ echo "            </table>\n";
 
 $post_username = addslashes($post_username);
 $display_name = addslashes($display_name);
+$time = time();
 
 $password = crypt($password, 'xy');
 $confirm_password = crypt($confirm_password, 'xy');
 
-$query3 = "insert into ".$db_prefix."employees (empfullname, displayname, employee_passwd, email, groups, office, admin, reports, time_admin, disabled)
-           values ('".$post_username."', '".$display_name."', '".$password."', '".$email_addy."', '".$group_name."', '".$office_name."', '".$admin_perms."',
-           '".$reports_perms."', '".$time_admin_perms."', '".$post_disabled."')";
+if ($email_addy="none@none.co.uk"){
+  $email_addy=""; 
+}
+
+$query3 = "insert into ".$db_prefix."employees (empfullname, tstamp, displayname, employee_passwd, email, groups, office, admin, reports, time_admin, disabled, employees_BadgeID, employees_inout)
+           values ('".$post_username."', '".$time."', '".$display_name."', '".$password."', '".$email_addy."', '".$group_name."', '".$office_name."', '".$admin_perms."',
+           '".$reports_perms."', '".$time_admin_perms."', '".$post_disabled."', '".$BadgeID."', 'out')";
 $result3 = mysqli_query($GLOBALS["___mysqli_ston"], $query3);
 
 /*

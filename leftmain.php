@@ -395,7 +395,7 @@ echo "<form role='form' name='timeclock' action='$self' method='post'>";
 echo '
         <div class="box box-primary">
                <div class="box-header with-border">
-                 <h3 class="box-title">Please punch in below:</h3>
+                 <h3 class="box-title">User list:</h3>
                </div>
                <!-- /.box-header -->';
 echo "<div class='box-body'>
@@ -483,10 +483,12 @@ if ($use_passwd == "yes") {
 
 echo "
                      <div class='form-group'>
-                           Status:
+                           
                         ";
 
 // query to populate dropdown with punchlist items //
+// removed from left nav side //
+/*
 $query = "select punchitems from ".$db_prefix."punchlist";
 $punchlist_result = mysqli_query($GLOBALS["___mysqli_ston"], $query);
 
@@ -516,6 +518,7 @@ echo "
                            <input type='text' name='left_notes' maxlength='250' class='form-control'>
 </div>";
 
+
 if (! isset($_COOKIE['remember_me'])) {
     echo "
                      <div class='checkbox'>
@@ -539,7 +542,7 @@ echo "
 <button type='submit' class='btn btn-lg btn-primary'>Punch Status</button>
                          </div>
                   </div></form>";
-
+*/
 // End leftnav here and put the rest in main.	
 
 // display links in top left of each page //
@@ -596,6 +599,7 @@ echo "
 if ($request == 'POST') { // Process employee's punch information
     // signin/signout data passed over from timeclock.php //
     $inout = $_POST['left_inout'];
+    $displayname = $_POST['left_displayname'];
 //    $notes = ereg_replace("[^[:alnum:] \,\.\?-]","",strtolower($_POST['left_notes']));
     $notes = preg_replace("[^[:alnum:] \,\.\?-]","",strtolower($_POST['left_notes']));
 
@@ -713,11 +717,12 @@ if ($request == 'POST') { // Process employee's punch information
     $punchlist_result = mysqli_query($GLOBALS["___mysqli_ston"], $query);
     // We need to get the full name if we're only displaying the display name
     if ($show_display_name == "yes") {
-        $query = "select empfullname from ".$db_prefix."employees where displayname = '".$displayname."'";
+        $query = "select * from ".$db_prefix."employees where displayname = '".$displayname."'";
         $sel_result = mysqli_query($GLOBALS["___mysqli_ston"], $query);
         while ($row = mysqli_fetch_array($sel_result)) {
             $fullname = stripslashes("".$row["empfullname"]."");
             $fullname = addslashes($fullname);
+		    $BadgeID = $row["employees_BadgeID"];
         }
     }
     // Get the current punch name of that employee
@@ -810,24 +815,26 @@ if ($request == 'POST') { // Process employee's punch information
   $tz_stamp = time ($hour, $min, $sec, $month, $day, $year);
 
     if ($show_display_name == "yes") {
-        $sel_query = "select empfullname from ".$db_prefix."employees where displayname = '".$displayname."'";
+        $sel_query = "select * from ".$db_prefix."employees where displayname = '".$displayname."'";
         $sel_result = mysqli_query($GLOBALS["___mysqli_ston"], $sel_query);
 
         while ($row=mysqli_fetch_array($sel_result)) {
             $fullname = stripslashes("".$row["empfullname"]."");
             $fullname = addslashes($fullname);
+		    $BadgeID = $row["employees_BadgeID"];
         }
     }
 
     if (strtolower($ip_logging) == "yes") {
-        $query = "insert into ".$db_prefix."info (fullname, `inout`, timestamp, notes, ipaddress) values ('".$fullname."', '".$inout."', '".$tz_stamp."', '".$notes."', '".$connecting_ip."')";
+        $query = "insert into ".$db_prefix."info (fullname, BadgeID, `inout`, timestamp, notes, ipaddress) values ('".$fullname."','".$BadgeID."', '".$inout."', '".$tz_stamp."', '".$notes."', '".$connecting_ip."')";
     } else {
-        $query = "insert into ".$db_prefix."info (fullname, `inout`, timestamp, notes) values ('".$fullname."', '".$inout."', '".$tz_stamp."', '".$notes."')";
+        $query = "insert into ".$db_prefix."info (fullname, BadgeID, `inout`, timestamp, notes) values ('".$fullname."','".$BadgeID."', '".$inout."', '".$tz_stamp."', '".$notes."')";
     }
 
+    
     $result = mysqli_query($GLOBALS["___mysqli_ston"], $query);
 
-    $update_query = "update ".$db_prefix."employees set tstamp = '".$tz_stamp."' where empfullname = '".$fullname."'";
+    $update_query = "update ".$db_prefix."employees set tstamp = '".$tz_stamp."', employees_inout = '".$inout."' where empfullname = '".$fullname."'";
     $other_result = mysqli_query($GLOBALS["___mysqli_ston"], $update_query);
 	    echo '<div class="col-md-4">
  <div class="callout callout-success">
@@ -874,3 +881,4 @@ echo '
 	<!-- /.extra messages -->
 	';
 ?>
+

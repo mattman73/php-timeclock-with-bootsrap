@@ -88,8 +88,8 @@ echo "
 if ($use_client_tz == "yes") {
     if (! isset($_COOKIE['tzoffset'])) {
         include 'tzoffset.php';
-        echo "
-      <meta http-equiv='refresh' content='0;URL=timeclock.php'>";
+        //echo "
+      //<meta http-equiv='refresh' content='0;URL=timeclock.php'>";
     }
 }
 
@@ -103,8 +103,10 @@ if ($refresh == "none") {
     echo '
    </head>';
 } else {
+    // removed to stop refresh
+    // <meta http-equiv='refresh' content=\"$refresh;URL=timeclock.php\">
     echo "
-      <meta http-equiv='refresh' content=\"$refresh;URL=timeclock.php\">
+      
       <script language=\"javascript\" src=\"scripts/pnguin_timeclock.js\">
       </script>
    </head>";
@@ -125,4 +127,8 @@ if ($use_client_tz == "yes") {
 } else {
     $tzo = "1";
 }
+
+// set correct time zone
+date_default_timezone_set("Europe/London");
+
 ?>

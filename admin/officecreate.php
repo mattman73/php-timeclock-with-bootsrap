@@ -508,7 +508,8 @@ echo "              <tr><td height=15></td></tr>\n";
 echo "              <tr><td width=30><input type='image' name='submit' value='Create Office' align='middle'
                       src='../images/buttons/next_button.png'></td><td><a href='officeadmin.php'><img src='../images/buttons/cancel_button.png'
                       border='0'></td></tr></table></form></td></tr>\n";
-include '../footer.php'; exit;
+//include '../footer.php';
+exit;
 }
 }
 ?>

@@ -52,7 +52,7 @@ function validateDate($date, $format = 'Y-m-d H:i:s')
 
 session_start();
 
-include 'config.inc.php';
+include '../config.inc.php';
 // use a different config.inc in Europe for now...
 include 'header_date.php';
 include 'topmain.php';

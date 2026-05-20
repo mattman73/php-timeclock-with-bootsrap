@@ -94,6 +94,27 @@ cam.close()
 "
 ```
 
+## Live camera stream
+
+While `scanner.py` runs it also serves an MJPEG video stream of the
+camera, with face-detection boxes drawn on it (red box while
+searching, green box + name when matched). This lets the kiosk
+screen show staff a live "am I in frame" preview.
+
+- Stream URL:    `http://<pi-ip>:8080/stream`
+- Single frame:  `http://<pi-ip>:8080/snapshot`
+- Health check:  `http://<pi-ip>:8080/health`
+
+It's **LAN-open** — anyone on the local network can view it, no
+authentication. Fine for an internal office network; don't expose
+port 8080 to the internet.
+
+To show it on the dashboard kiosk page: in the dashboard's
+**Settings**, set "Kiosk camera URL" to `http://<pi-ip>:8080/stream`.
+
+Disable streaming entirely by setting `STREAM_ENABLED=false` in
+`.env`, or change the port with `STREAM_PORT`.
+
 ## Running
 
 ```bash

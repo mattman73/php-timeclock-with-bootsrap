@@ -88,6 +88,7 @@ if ($request == 'GET') { // Display employee add time interface
     while ($row=mysqli_fetch_array($result)) {
         $username = stripslashes("".$row['empfullname']."");
         $displayname = stripslashes("".$row['displayname']."");
+        $badgeID = stripslashes("".$row['employees_BadgeID']."");
     }
     ((mysqli_free_result($result) || (is_object($result) && (get_class($result) == "mysqli_result"))) ? true : false);
 
@@ -212,6 +213,8 @@ echo'    	                       <div class="input-group-addon">
         $result = mysqli_query($GLOBALS["___mysqli_ston"], $query);
         while ($row=mysqli_fetch_array($result)) {
             $tmp_get_user = "".$row['empfullname']."";
+            $badgeID = stripslashes("".$row['employees_BadgeID']."");
+
         }
         if (!isset($tmp_get_user)) {
             echo "Something is fishy here.\n";
@@ -224,6 +227,7 @@ echo'    	                       <div class="input-group-addon">
         $result = mysqli_query($GLOBALS["___mysqli_ston"], $query);
         while ($row=mysqli_fetch_array($result)) {
             $tmp_username = "".$row['empfullname']."";
+            $badgeID = stripslashes("".$row['employees_BadgeID']."");
         }
         if (!isset($tmp_username)) {
             echo "Something is fishy here.\n";
@@ -464,6 +468,7 @@ if (preg_match("/^([0-9]{1,2})[\-\/\.]([0-9]{1,2})[\-\/\.](([0-9]{2})|([0-9]{4})
         echo "                <input type='hidden' name='date_format' value='$js_datefmt'>\n";
         echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Username:</td><td align=left class=table_rows colspan=2 width=80% style='padding-left:20px;'> <input type='hidden' name='post_username' value=\"$post_username\">$post_username</td></tr>\n";
         echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Display Name:</td><td align=left class=table_rows colspan=2 width=80% style='padding-left:20px;'> <input type='hidden' name='post_displayname' value=\"$post_displayname\">$post_displayname</td></tr>\n";
+        echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Display Name:</td><td align=left class=table_rows colspan=2 width=80% style='padding-left:20px;'> <input type='hidden' name='post_displayname' value=\"$badgeID\">$badgeID</td></tr>\n";
         echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Date:</td><td colspan=2 width=80% style='color:red;font-family:Tahoma;font-size:10px;padding-left:20px;'><input type='text' size='10' maxlength='10' name='post_date' value='$post_date'>&nbsp;*&nbsp;&nbsp;&nbsp;<a href=\"#\" onclick=\"cal.select(document.forms['form'].post_date,'post_date_anchor','$js_datefmt'); return false;\" name=\"post_date_anchor\" id=\"post_date_anchor\" style='font-size:11px;color:#27408b;'>Pick Date</a></td><tr>\n";
         echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Time:</td><td colspan=2 width=80% style='color:red;font-family:Tahoma;font-size:10px;padding-left:20px;'> <input type='text' size='10' maxlength='$timefmt_size' name='post_time' value='$post_time'>&nbsp;*&nbsp;&nbsp; <a style='text-decoration:none;font-size:11px;color:#27408b;'>($timefmt_24hr_text)</a></td></tr>\n";
         echo "                <input type='hidden' name='get_user' value=\"$get_user\">\n";
@@ -626,13 +631,15 @@ if (preg_match("/^([0-9]{1,2})[\-\/\.]([0-9]{1,2})[\-\/\.](([0-9]{2})|([0-9]{4})
         $time_tz_stamp = time ($time_hour, $time_min, $time_sec, $time_month, $time_day, $time_year);
 
         // add the time to the info table for $post_username and audit log
+        $badgeID = addslashes($badgeID);
+
         if (strtolower($ip_logging) == "yes") {
-            $query = "insert into ".$db_prefix."info (fullname, `inout`, timestamp, notes, ipaddress) values ('".$post_username."', '".$post_statusname."', '".$timestamp."', '".$post_notes."', '".$connecting_ip."')";
+            $query = "insert into ".$db_prefix."info (fullname, BadgeID, `inout`, timestamp, notes, ipaddress) values ('".$post_username."','" . $badgeID . "', '".$post_statusname."', '".$timestamp."', '".$post_notes."', '".$connecting_ip."')";
             $result = mysqli_query($GLOBALS["___mysqli_ston"], $query);
             $query2 = "insert into ".$db_prefix."audit (modified_by_ip, modified_by_user, modified_when, modified_from, modified_to, modified_why, user_modified) values ('".$connecting_ip."', '".$user."', '".$time_tz_stamp."', '0', '".$timestamp."', '".$post_why."', '".$post_username."')";
             $result2 = mysqli_query($GLOBALS["___mysqli_ston"], $query2);
         } else {
-            $query = "insert into ".$db_prefix."info (fullname, `inout`, timestamp, notes) values ('".$post_username."', '".$post_statusname."', '".$timestamp."', '".$post_notes."')";
+            $query = "insert into ".$db_prefix."info (fullname, BadgeID, `inout`, timestamp, notes) values ('".$post_username."','" . $badgeID . "', '".$post_statusname."', '".$timestamp."', '".$post_notes."')";
             $result = mysqli_query($GLOBALS["___mysqli_ston"], $query);
             $query2 = "insert into ".$db_prefix."audit (modified_by_user, modified_when, modified_from, modified_to, modified_why, user_modified) values ('".$user."', '".$time_tz_stamp."', '0', '".$timestamp."', '".$post_why."', '".$post_username."')";
             $result2 = mysqli_query($GLOBALS["___mysqli_ston"], $query2);

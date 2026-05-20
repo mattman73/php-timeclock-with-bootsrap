@@ -138,5 +138,7 @@ echo "                <td class=table_rows width=3% align=center><a href=\"group
 }
 }
 echo "          </table></td></tr>\n";
-include '../footer.php'; exit;
+
+//include '../footer.php';
+exit;
 ?>

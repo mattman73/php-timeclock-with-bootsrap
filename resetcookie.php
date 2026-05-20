@@ -20,8 +20,8 @@
  *   51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA.             *
  ***************************************************************************/
 
-    setcookie("tzoffset", "", time() - 3600);
-    echo "<head>\n";
-    echo "<meta http-equiv='refresh' content='0;URL=index.php'>\n";
-    echo "</head>\n";
+    //setcookie("tzoffset", "", time() - 3600);
+    //echo "<head>\n";
+    //echo "<meta http-equiv='refresh' content='0;URL=index.php'>\n";
+    //echo "</head>\n";
 ?>

@@ -106,7 +106,7 @@ if ($_REQUEST["login_action"] == "admin") {
     } else { // The user is either not valid or has not entered in his credentials.
 	    echo '<div class="col-md-12"><div class="login-box">
   <div class="login-logo">
-    <a href="index.php"><b>PHP TIMECLOCK <i class="fa fa-clock-o"></i></b>Admin Login</a>
+    <a href="index.php"><b>Jondo TIMECLOCK <i class="fa fa-clock-o"></i></b>Admin Login</a>
   </div>
   <!-- /.login-logo -->
   <div class="login-box-body">
@@ -226,7 +226,7 @@ if ($_REQUEST["login_action"] == "admin") {
 
 	    echo '<div class="col-md-12"><div class="login-box">
       <div class="login-logo">
-        <a href="index.php"><b>PHP TIMECLOCK <i class="fa fa-clock-o"></i></b>Reports Login</a>
+        <a href="index.php"><b>Jondo TIMECLOCK <i class="fa fa-clock-o"></i></b>Reports Login</a>
   </div>
   <!-- /.login-logo -->
   <div class="login-box-body">

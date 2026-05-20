@@ -228,7 +228,7 @@ end moving to leftmain */
     $row_color = ($row_count % 2) ? $color1 : $color2;
 
     // display the query results //
-    $display_stamp = $display_stamp + @$tzo;
+    $display_stamp = $display_stamp;
     $time = date($timefmt, $display_stamp);
     $date = date($datefmt, $display_stamp);
 
@@ -318,9 +318,9 @@ end moving to leftmain */
 
     // output 40 rows per printed page //
     if ($row_count == 40) {
-        echo "
-                           <tr style=\"page-break-before:always;\">
-                           </tr>";
+       // echo "
+       //                    <tr style=\"page-break-before:always;\">
+       //                    </tr>";
         $row_count = 0;
         $page_count++;
     }

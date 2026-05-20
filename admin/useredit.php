@@ -169,7 +169,7 @@ echo "              <tr><td class=table_rows height=25 width=20% style='padding-
                       <input type='text' size='25' maxlength='50' name='display_name' value=\"$displayname\">&nbsp;*</td></tr>\n";
 echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Email Address:</td><td colspan=2 width=80%
                       style='color:red;font-family:Tahoma;font-size:10px;padding-left:20px;'>
-                      <input type='text' size='25' maxlength='75' name='email_addy' value='$user_email'>&nbsp;*</td></tr>\n";
+                      <input type='text' size='25' maxlength='75' name='email_addy' value='$user_email'></td></tr>\n";
 echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Office:</td><td colspan=2 width=80%
                       style='color:red;font-family:Tahoma;font-size:10px;padding-left:20px;'>
                       <select name='office_name' onchange='group_names();'>
@@ -289,7 +289,11 @@ $string = strstr($display_name, "\"");
 //(($reports_perms != '1') && (!empty($reports_perms))) || (($time_admin_perms != '1') && (!empty($time_admin_perms))) || (($post_disabled != '1') &&
 //(!empty($post_disabled))) || (!empty($string))) {
 
-        if ((!preg_match('/' . "^([[:alnum:]]|Å|Ä|Ö| |-|'|,)+$" . '/i', $display_name)) || (empty($display_name)) || (empty($email_addy)) || (empty($office_name)) || (empty($group_name)) ||
+  if ($email_addy==""){
+    $email_addy="none@none.co.uk";
+  }
+
+        if ((!preg_match('/' . "^([[:alnum:]]|Å|Ä|Ö| |-|'|,)+$" . '/i', $display_name)) || (empty($display_name)) || (empty($office_name)) || (empty($group_name)) ||
             (!preg_match('/' . "^([[:alnum:]]|_|\.|-)+@([[:alnum:]]|\.|-)+(\.)([a-z]{2,4})$" . '/i', $email_addy)) || (($admin_perms != '1') && (!empty($admin_perms))) ||
             (($reports_perms != '1') && (!empty($reports_perms))) || (($time_admin_perms != '1') && (!empty($time_admin_perms))) || (($post_disabled != '1') &&
                                                                                                                                      (!empty($post_disabled))) || (!empty($string))
@@ -349,19 +353,21 @@ echo "          <td valign=top>\n";
 echo "            <br />\n";
 */
 // begin post validation //
+// removed not needed //
+/*
+elseif (empty($email_addy)) {
+echo "            <table align=center class=table_border width=60% border=0 cellpadding=0 cellspacing=3>\n";
+echo "              <tr>\n";
+echo "                <td class=table_rows width=20 align=center><img src='../images/icons/cancel.png' /></td><td class=table_rows_red>
+                    An Email Address is required.</td></tr>\n";
+echo "            </table>\n";
+}*/
 
 if (empty($display_name)) {
 echo "            <table align=center class=table_border width=60% border=0 cellpadding=0 cellspacing=3>\n";
 echo "              <tr>\n";
 echo "                <td class=table_rows width=20 align=center><img src='../images/icons/cancel.png' /></td><td class=table_rows_red>
                     A Display Name is required.</td></tr>\n";
-echo "            </table>\n";
-}
-elseif (empty($email_addy)) {
-echo "            <table align=center class=table_border width=60% border=0 cellpadding=0 cellspacing=3>\n";
-echo "              <tr>\n";
-echo "                <td class=table_rows width=20 align=center><img src='../images/icons/cancel.png' /></td><td class=table_rows_red>
-                    An Email Address is required.</td></tr>\n";
 echo "            </table>\n";
 }
 elseif (empty($office_name)) {
@@ -395,13 +401,7 @@ echo "                <td class=table_rows width=20 align=center><img src='../im
 echo "            </table>\n";
 }
 // elseif (!eregi ("^([[:alnum:]]|_|\.|-)+@([[:alnum:]]|\.|-)+(\.)([a-z]{2,4})$", $email_addy)) {
-elseif (!preg_match('/' . "^([[:alnum:]]|_|\.|-)+@([[:alnum:]]|\.|-)+(\.)([a-z]{2,4})$" . '/i', $email_addy)) {
-echo "            <table align=center class=table_border width=60% border=0 cellpadding=0 cellspacing=3>\n";
-echo "              <tr>\n";
-echo "                <td class=table_rows width=20 align=center><img src='../images/icons/cancel.png' /></td><td class=table_rows_red>
-                    Alphanumeric characters, underscores, periods, and hyphens are allowed when creating an Email Address.</td></tr>\n";
-echo "            </table>\n";
-}
+
 elseif (($admin_perms != '1') && (!empty($admin_perms))) {
 echo "            <table align=center class=table_border width=60% border=0 cellpadding=0 cellspacing=3>\n";
 echo "              <tr>\n";
@@ -470,11 +470,11 @@ echo "              <tr><td class=table_rows height=25 width=20% style='padding-
                       <input type='text' size='25' maxlength='50' name='display_name' value=\"$display_name\">&nbsp;*</td></tr>\n";
 echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Email Address:</td><td colspan=2 width=80%
                       style='color:red;font-family:Tahoma;font-size:10px;padding-left:20px;'>
-                      <input type='text' size='25' maxlength='75' name='email_addy' value='$email_addy'>&nbsp;*</td></tr>\n";
+                      <input type='text' size='25' maxlength='75' name='email_addy' value='$email_addy'></td></tr>\n";
 echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Office:</td><td colspan=2 width=80%
                       style='color:red;font-family:Tahoma;font-size:10px;padding-left:20px;'>
                       <select name='office_name' onchange='group_names();'>\n";
-echo "                      </select>&nbsp;*</td></tr>\n";
+echo "                      </select></td></tr>\n";
 echo "              <tr><td class=table_rows height=25 width=20% style='padding-left:32px;' nowrap>Group:</td><td colspan=2 width=80%
                       style='color:red;font-family:Tahoma;font-size:10px;padding-left:20px;'>
                       <select name='group_name' onfocus='group_names();'>
@@ -542,10 +542,17 @@ $display_name = stripslashes($display_name);
 $post_username = addslashes($post_username);
 $display_name = addslashes($display_name);
 
-$query3 = "update ".$db_prefix."employees set displayname = ('".$display_name."'), email = ('".$email_addy."'), groups = ('".$group_name."'),
-	   office = ('".$office_name."'), admin = ('".$admin_perms."'), reports = ('".$reports_perms."'), time_admin = ('".$time_admin_perms."'),
-           disabled = ('".$post_disabled."')
-           where empfullname = ('".$post_username."')";
+// if email_addy is empty then do not update email address
+if ($email_addy=="none@none.co.uk"){
+  // set email to blank
+  $email_addy="";
+}
+
+  $query3 = "update ".$db_prefix."employees set displayname = ('".$display_name."'), email = ('".$email_addy."'), groups = ('".$group_name."'),
+      office = ('".$office_name."'), admin = ('".$admin_perms."'), reports = ('".$reports_perms."'), time_admin = ('".$time_admin_perms."'),
+            disabled = ('".$post_disabled."')
+            where empfullname = ('".$post_username."')";
+
 $result3 = mysqli_query($GLOBALS["___mysqli_ston"], $query3);
 
 /*

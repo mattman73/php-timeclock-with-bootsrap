@@ -854,6 +854,6 @@ echo "
          </table>
       </td>
    </tr>";
-include "../footer.php";
+//include "../footer.php";
 exit;
 ?>

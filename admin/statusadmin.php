@@ -137,5 +137,5 @@ echo "                <td class=table_rows width=3% align=center><a title=\"Dele
 }
 }
 echo "          </table></td></tr>\n";
-include '../footer.php';
+//include '../footer.php';
 ?>
