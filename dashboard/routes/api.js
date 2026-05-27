@@ -6,6 +6,7 @@
 //   POST /api/punch                        trigger a clock-in/out by
 //                                          empfullname (face-recognised)
 //   POST /api/face-events                  bulk-insert audit log rows
+//   GET  /api/scanner-state                is the scanner scheduled on?
 //
 // The Pi pulls /api/faces/photos every few minutes, downloads any
 // it doesn't have locally, and rebuilds embeddings on disk. When
@@ -17,6 +18,7 @@ const { query, t } = require('../db');
 const { bearer } = require('../services/apiAuth');
 const { findByUsername } = require('../services/clockin');
 const { punchByBadge } = require('../services/clockin');
+const { computeCameraState } = require('../services/cameraSchedule');
 
 const router = express.Router();
 router.use(express.json({ limit: '256kb' }));
@@ -142,6 +144,31 @@ router.post('/face-events', async (req, res, next) => {
             inserted++;
         }
         res.json({ ok: true, inserted });
+    } catch (err) { next(err); }
+});
+
+// The Pi polls this to learn whether it should be running face
+// recognition right now. The camera follows a schedule set in the
+// dashboard (Settings -> Camera schedule); outside its hours the
+// Pi pauses matching. If the schedule columns aren't migrated yet,
+// or the row is missing, this returns active = true (always on).
+router.get('/scanner-state', async (req, res, next) => {
+    try {
+        let row = {};
+        try {
+            const rows = await query(
+                `SELECT camera_schedule_enabled, camera_morning_on, camera_morning_off,
+                        camera_evening_on, camera_evening_off,
+                        camera_wake_minutes, camera_wake_until
+                 FROM ${t('alert_settings')} WHERE id = 1`,
+                []
+            );
+            row = rows[0] || {};
+        } catch (e) {
+            // columns not migrated — fall through to always-on default
+        }
+        const state = computeCameraState(row);
+        res.json({ ok: true, active: state.active, reason: state.reason });
     } catch (err) { next(err); }
 });
 

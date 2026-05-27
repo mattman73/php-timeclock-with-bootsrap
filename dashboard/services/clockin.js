@@ -65,7 +65,7 @@ async function recordPunch(emp, { notes = '', ip = '' } = {}) {
         [ts, action, emp.empfullname]
     );
 
-    return action;
+    return { action, ts };
 }
 
 // Public entry: badge-driven punch.
@@ -73,12 +73,13 @@ async function punchByBadge(badgeId, opts = {}) {
     const emp = await findByBadge(badgeId);
     if (!emp) return { ok: false, reason: 'unknown badge' };
     if (Number(emp.disabled) === 1) return { ok: false, reason: 'employee disabled' };
-    const action = await recordPunch(emp, opts);
+    const { action, ts } = await recordPunch(emp, opts);
     return {
         ok: true,
         empfullname: emp.empfullname,
         displayname: emp.displayname || emp.empfullname,
         action,
+        ts,
     };
 }
 
@@ -90,12 +91,13 @@ async function punchByPassword(username, password, opts = {}) {
     if (!verifyPassword(password, emp.employee_passwd)) {
         return { ok: false, reason: 'wrong password' };
     }
-    const action = await recordPunch(emp, opts);
+    const { action, ts } = await recordPunch(emp, opts);
     return {
         ok: true,
         empfullname: emp.empfullname,
         displayname: emp.displayname || emp.empfullname,
         action,
+        ts,
     };
 }
 

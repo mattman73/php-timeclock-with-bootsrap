@@ -396,6 +396,46 @@ body.kiosk.fire-mode .kiosk-head .brand-text { color: #fff; }
     max-width: 320px;
 }
 
+/* Camera "asleep" panel — shown outside the camera's scheduled
+   hours. Tapping it asks the server to wake the camera. */
+.cam-sleep {
+    width: 320px;
+    max-width: 100%;
+    min-height: 240px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(17, 128, 189, 0.18);
+    background: #0f2a3a;
+    color: #cfe6f3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    user-select: none;
+    text-align: center;
+    transition: background 0.15s ease;
+}
+.cam-sleep:hover,
+.cam-sleep:focus {
+    background: #143a52;
+    outline: none;
+}
+.cam-sleep-moon {
+    width: 56px;
+    height: 56px;
+    color: #ffd56b;
+    margin-bottom: 6px;
+}
+.cam-sleep-title {
+    font-size: 20px;
+    font-weight: 700;
+}
+.cam-sleep-sub {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
 /* ============================================================
    RESPONSIVE BREAKPOINTS
    ============================================================ */
@@ -476,3 +516,30 @@ body.kiosk.fire-mode .kiosk-head .brand-text { color: #fff; }
 /* Default state — hide compact header-time on desktop (responsive
    queries above flip it on for phones). */
 .kiosk-head #digital-time { display: none; }
+
+.clock-col canvas { margin-top: 6px; }
+
+/* --- inline scan result line (small confirmation under the badge box) --- */
+.scan-result {
+    margin-top: 16px;
+    padding: 16px 20px;
+    border-radius: 10px;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+}
+.scan-result.in {
+    background: #e7f6ec;
+    color: #1b6b35;
+    border: 2px solid #1b6b35;
+}
+.scan-result.out {
+    background: #e7f0f8;
+    color: #15517f;
+    border: 2px solid #15517f;
+}
+.scan-result.err {
+    background: #fdecec;
+    color: #a32020;
+    border: 2px solid #a32020;
+}

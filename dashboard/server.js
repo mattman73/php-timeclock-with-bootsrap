@@ -22,6 +22,7 @@ const facesRoutes = require('./routes/faces');
 const apiRoutes = require('./routes/api');
 const portalRoutes = require('./routes/portal');
 const timeoffRoutes = require('./routes/timeoff');
+const bookoffRoutes = require('./routes/bookoff');
 const holidaysRoutes = require('./routes/holidays');
 const { requireLogin } = require('./services/auth');
 const { startAlertEngine } = require('./services/alerts');
@@ -57,6 +58,7 @@ app.use((req, res, next) => {
 // --- Public staff-facing routes ---
 app.use('/', clockRoutes);
 app.use('/board', boardRoutes);
+app.use('/book', bookoffRoutes);
 
 // --- Admin auth ---
 app.use('/admin', authRoutes);

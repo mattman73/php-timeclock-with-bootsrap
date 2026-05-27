@@ -34,6 +34,8 @@ It doesn't:
   - Logitech C920 / similar USB webcam — easiest to set up.
 - A small ring-light or under-monitor light if your kiosk spot is
   poorly lit. Lighting is the #1 cause of misidentifications.
+- (Optional) A passive piezo buzzer for audible feedback — see
+  the "Buzzer" section below.
 
 ## One-time install on the Pi
 
@@ -114,6 +116,50 @@ To show it on the dashboard kiosk page: in the dashboard's
 
 Disable streaming entirely by setting `STREAM_ENABLED=false` in
 `.env`, or change the port with `STREAM_PORT`.
+
+## Buzzer (optional)
+
+The scanner can drive a small **passive piezo buzzer** wired to a
+GPIO pin, so staff get an audible cue without watching the screen:
+
+- A short rising chirp when a face is matched and the punch is
+  recorded.
+- A low double-buzz when a face is seen but not recognised
+  (throttled so it doesn't buzz on every frame).
+
+Use a *passive* buzzer (the Pi drives the tone) — a bare 2-pin
+passive buzzer, or a 3-pin module such as a KY-006. An *active*
+buzzer plays its own fixed tone and won't give the two distinct
+sounds.
+
+Wiring (default pin):
+
+```
+buzzer signal  ->  GPIO 18   (physical pin 12)
+buzzer ground  ->  GND       (physical pin 14, next to it)
+```
+
+On a 3-pin KY-006 module: `S` = signal, `-` = ground, the middle
+pin is left unconnected. A passive buzzer draws only a few mA, so
+it can connect straight to the GPIO with no transistor.
+
+The buzzer uses the `gpiozero` library, which ships with Raspberry
+Pi OS. If the scanner logs `buzzer unavailable`, install it inside
+the venv:
+
+```bash
+pip install gpiozero lgpio
+```
+
+Settings in `.env`:
+
+- `BUZZER_ENABLED` — `false` to run silently with no buzzer.
+- `BUZZER_PIN` — the GPIO (BCM) number the signal wire is on.
+- `BUZZER_REJECT_COOLDOWN` — minimum seconds between "not
+  recognised" buzzes.
+
+If no buzzer is wired up, leave `BUZZER_ENABLED=true` anyway — the
+scanner fails soft and just stays silent.
 
 ## Running
 

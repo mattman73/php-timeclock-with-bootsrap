@@ -5,7 +5,7 @@
 //   GET  /timeoff/new       request form
 //   POST /timeoff/new       submit a request
 //   GET  /timeoff/mine      my own requests + allowance summary
-//   POST /timeoff/:id/cancel    cancel one of my pending requests
+//   POST /timeoff/:id/cancel    cancel a request
 //
 // Admin only:
 //   GET  /timeoff/admin     pending queue + history
@@ -17,6 +17,8 @@ const express = require('express');
 const { query, t } = require('../db');
 const { requireLogin, requireAdmin } = require('../services/auth');
 const { sendMail } = require('./../services/mailer');
+const { sendWhatsApp } = require('./../services/whatsapp');
+const { dashboardUrl } = require('./../services/notifyUrl');
 const {
     REQUEST_TYPES,
     isValidType,
@@ -93,11 +95,12 @@ router.post('/new', async (req, res, next) => {
             ]
         );
 
+        const reviewLink = dashboardUrl(settings, '/timeoff/admin');
+
         // Email the admin
         const notify = settings.timeoff_notify_email || settings.manager_email;
         if (notify) {
             const display = req.session.user.displayname || me;
-            const port = process.env.PORT || 3000;
             sendMail({
                 to: notify,
                 subject: `[Jondo] Time-off request from ${display} (${type})`,
@@ -110,8 +113,23 @@ router.post('/new', async (req, res, next) => {
   Hours:   ${hours.toFixed(2)}
   Reason:  ${reason || '(none given)'}
 
-Review it: http://localhost:${port}/timeoff/admin`,
+Review it: ${reviewLink}`,
             }).catch(e => console.error('[timeoff] notify mail:', e.message));
+        }
+
+        // WhatsApp the managers as well (separate channel from email;
+        // self-gated by the whatsapp_enabled setting).
+        {
+            const display = req.session.user.displayname || me;
+            const waText =
+                `New time-off request: ${display} (${type}), ${hours.toFixed(2)}h, `
+                + `${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}. `
+                + `Review: ${reviewLink}`;
+            // No settings arg — sendWhatsApp loads the full
+            // alert_settings row itself (this route's `settings` is a
+            // trimmed projection without the whatsapp_* columns).
+            sendWhatsApp(waText)
+                .catch(e => console.error('[timeoff] whatsapp:', e.message));
         }
 
         req.flash('success', `Request submitted (${hours.toFixed(1)} hours). You'll be emailed when it's reviewed.`);
@@ -142,35 +160,76 @@ router.get('/mine', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-// ---------- cancel my pending request ----------
+// ---------- cancel a request ----------
+// Staff may cancel their own PENDING request. Admins may also cancel
+// an already-APPROVED request (plans changed, booked in error, etc.)
+// — and the employee is emailed when an admin does so.
 router.post('/:id/cancel', async (req, res, next) => {
     try {
         const me = req.session.user.empfullname;
+        const admin = isAdmin(req);
         const rows = await query(
-            `SELECT empfullname, status FROM ${t('time_off_requests')} WHERE id = ?`,
+            `SELECT r.id, r.empfullname, r.request_type, r.status,
+                    r.start_datetime, r.end_datetime, r.hours_requested,
+                    e.email AS emp_email, e.displayname AS emp_displayname
+             FROM ${t('time_off_requests')} r
+             JOIN ${t('employees')} e ON e.empfullname = r.empfullname
+             WHERE r.id = ?`,
             [req.params.id]
         );
+        const backUrl = admin ? '/timeoff/admin' : '/timeoff/mine';
         if (!rows.length) {
             req.flash('error', 'Request not found.');
-            return res.redirect('/timeoff/mine');
+            return res.redirect(backUrl);
         }
         const r = rows[0];
-        if (r.empfullname !== me && !isAdmin(req)) {
+        if (r.empfullname !== me && !admin) {
             req.flash('error', 'Not yours.');
             return res.redirect('/timeoff/mine');
         }
-        if (r.status !== 'pending') {
+        const allowed = admin ? ['pending', 'approved'] : ['pending'];
+        if (!allowed.includes(r.status)) {
             req.flash('error', `Can't cancel a ${r.status} request.`);
-            return res.redirect('/timeoff/mine');
+            return res.redirect(backUrl);
         }
+        const wasApproved = r.status === 'approved';
+
         await query(
             `UPDATE ${t('time_off_requests')}
              SET status = 'cancelled', reviewed_at = NOW(), reviewed_by = ?
              WHERE id = ?`,
             [me, req.params.id]
         );
-        req.flash('success', 'Request cancelled.');
-        res.redirect(isAdmin(req) ? '/timeoff/admin' : '/timeoff/mine');
+
+        // When an admin cancels someone else's request, tell the
+        // employee — especially important for approved leave they had
+        // already planned around.
+        if (admin && r.empfullname !== me && r.emp_email) {
+            const settings = await loadSettings();
+            const mineLink = dashboardUrl(settings, '/timeoff/mine');
+            sendMail({
+                to: r.emp_email,
+                subject: `[Jondo] Your ${r.request_type} time off has been cancelled`,
+                text:
+`Hi ${r.emp_displayname || r.empfullname},
+
+Your ${wasApproved ? 'approved ' : ''}${r.request_type} time off has been cancelled by a manager.
+
+  From:  ${r.start_datetime}
+  To:    ${r.end_datetime}
+  Hours: ${Number(r.hours_requested).toFixed(2)}
+
+View your requests: ${mineLink}
+
+If this is unexpected, please speak to your manager.`,
+            }).catch(e => console.error('[timeoff] cancel mail:', e.message));
+        }
+
+        req.flash('success',
+            wasApproved
+                ? 'Approved time off cancelled — the employee has been emailed.'
+                : 'Request cancelled.');
+        res.redirect(backUrl);
     } catch (err) { next(err); }
 });
 
@@ -307,6 +366,8 @@ async function decide(id, newStatus, reviewer, note) {
     );
 
     if (r.emp_email) {
+        const settings = await loadSettings();
+        const mineLink = dashboardUrl(settings, '/timeoff/mine');
         const verb = newStatus === 'approved' ? 'approved' : 'declined';
         sendMail({
             to: r.emp_email,
@@ -321,7 +382,7 @@ Your time-off request has been ${verb}.
   To:      ${r.end_datetime}
   Hours:   ${Number(r.hours_requested).toFixed(2)}
 ${note ? '  Manager note: ' + note + '\n' : ''}
-Sign in to view your requests.`,
+View your requests: ${mineLink}`,
         }).catch(e => console.error('[timeoff] decide mail:', e.message));
     }
     return { ok: true, row: r };

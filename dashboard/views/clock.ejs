@@ -18,18 +18,31 @@
 </header>
 
 <main class="kiosk-main">
+    <% var hasCam = (typeof cameraUrl !== 'undefined' && cameraUrl); %>
+    <% var camAsleep = (typeof cameraActive !== 'undefined' && cameraActive === false); %>
     <div class="clock-col">
-        <% if (typeof cameraUrl !== 'undefined' && cameraUrl) { %>
-            <div class="cam-wrap">
+        <% if (hasCam) { %>
+            <div id="camWrap" class="cam-wrap"<%- camAsleep ? ' style="display:none"' : '' %>>
                 <img id="camFeed" class="cam-feed" src="<%= cameraUrl %>" alt="Camera">
                 <div id="camDown" class="cam-down" style="display:none">
                     Camera offline
                 </div>
             </div>
-            <p class="cam-hint">Stand in the frame &mdash; the box turns green when you're recognised.</p>
-        <% } else { %>
-            <canvas id="analog" width="260" height="260"></canvas>
+            <%# Shown when the camera is outside its scheduled hours. %>
+            <div id="camSleep" class="cam-sleep"<%- camAsleep ? '' : ' style="display:none"' %>
+                 role="button" tabindex="0" aria-label="Camera asleep — tap to wake it">
+                <svg class="cam-sleep-moon" viewBox="0 0 64 64" aria-hidden="true">
+                    <path d="M40 6a26 26 0 1 0 18 44A22 22 0 0 1 40 6z" fill="currentColor"/>
+                </svg>
+                <div class="cam-sleep-title">Camera asleep</div>
+                <div class="cam-sleep-sub">Tap here to wake it</div>
+            </div>
+            <p class="cam-hint" id="camHint"<%- camAsleep ? ' style="display:none"' : '' %>>Stand in the frame &mdash; the box turns green when you're recognised.</p>
         <% } %>
+        <%# Analog clock always rendered; smaller when sharing the column with the camera. %>
+        <canvas id="analog"
+                width="<%= hasCam ? 170 : 260 %>"
+                height="<%= hasCam ? 170 : 260 %>"></canvas>
         <div id="digital" class="digital">--:--:--</div>
     </div>
 
@@ -56,17 +69,22 @@
                    maxlength="240">
             <button type="submit" class="kiosk-btn">Submit</button>
         </form>
+
+        <%# Inline scan result — shown by JS, no page navigation. %>
+        <div id="scanResult" class="scan-result" style="display:none"></div>
+
         <p class="hint">
             No badge?
             <a href="/password">Sign in with username &amp; password</a>
+        </p>
+        <p style="margin-top:22px;">
+            <a href="/book" style="display:inline-block; background:var(--jondo-blue); color:#fff; padding:13px 28px; border-radius:10px; font-size:18px; font-weight:600; text-decoration:none;">Book time off</a>
         </p>
     </div>
 </main>
 
 <script>
-// Keep focus on the badge field at all times — most barcode scanners
-// emit keystrokes followed by Enter, so as long as the field has
-// focus the form submits automatically.
+// Keep focus on the badge field — barcode scanners type then Enter.
 (function () {
     var input = document.getElementById('BadgeID');
     function refocus() {
@@ -78,9 +96,110 @@
     document.addEventListener('click', refocus);
 })();
 
-// Camera feed health — if the MJPEG stream drops, show an
-// "offline" message and keep retrying so it recovers on its own
-// when the Pi scanner comes back.
+// AJAX scan + small inline result line. No page navigation, no
+// full-screen overlay. Also polls for face-recognition punches.
+(function () {
+    var form = document.getElementById('badgeForm');
+    var badge = document.getElementById('BadgeID');
+    var notes = document.getElementById('notes');
+    var result = document.getElementById('scanResult');
+    var defaultSecs = <%= (typeof resultSecs === 'number' && resultSecs > 0) ? resultSecs : 5 %>;
+    var countdownTimer = null;
+    var busy = false;
+    var lastSeenTs = 0;
+
+    function clearResult() {
+        result.style.display = 'none';
+        result.className = 'scan-result';
+        result.textContent = '';
+        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    }
+
+    function showResult(kind, text, secs) {
+        result.className = 'scan-result ' + kind;
+        result.style.display = 'block';
+        var remaining = Math.max(1, secs | 0);
+        function render() { result.textContent = text; }
+        render();
+        if (countdownTimer) clearInterval(countdownTimer);
+        countdownTimer = setInterval(function () {
+            remaining -= 1;
+            if (remaining <= 0) { clearResult(); }
+        }, 1000);
+    }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (busy) return;
+        var id = (badge.value || '').trim();
+        if (!id) { badge.focus(); return; }
+        busy = true;
+        var body = new URLSearchParams();
+        body.set('BadgeID', id);
+        body.set('notes', notes ? notes.value : '');
+        fetch('/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString(),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            busy = false;
+            badge.value = '';
+            if (notes) notes.value = '';
+            badge.focus();
+            if (data.ok) {
+                // Mark this punch as already seen so the live poll
+                // below doesn't show it a second time.
+                if (data.tstamp) lastSeenTs = data.tstamp;
+                var isIn = data.action === 'in';
+                showResult(
+                    isIn ? 'in' : 'out',
+                    '✓ ' + data.displayname + ' — Clocked ' + (isIn ? 'IN' : 'OUT'),
+                    data.redirectSecs || defaultSecs
+                );
+            } else {
+                showResult('err', '⚠ ' + (data.message || 'Please try again'), 6);
+            }
+        })
+        .catch(function () {
+            busy = false;
+            badge.focus();
+            showResult('err', '⚠ Network error — please try again', 6);
+        });
+    });
+
+    // Live punch poll. A face-recognition match on the Pi clocks the
+    // person in via the server's /api/punch — that never goes through
+    // this browser, so without this the kiosk screen would never
+    // react to it. We poll for the most recent punch and show the
+    // same inline confirmation when a newer one appears.
+    function pollRecent() {
+        fetch('/recent-punch', { cache: 'no-store' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data || !data.ok || !data.tstamp) return;
+                // First poll just records the baseline so we don't
+                // replay a punch that happened before the page loaded.
+                if (lastSeenTs === 0) { lastSeenTs = data.tstamp; return; }
+                if (data.tstamp > lastSeenTs) {
+                    lastSeenTs = data.tstamp;
+                    var isIn = data.action === 'in';
+                    showResult(
+                        isIn ? 'in' : 'out',
+                        '✓ ' + (data.displayname || '') + ' — Clocked ' + (isIn ? 'IN' : 'OUT'),
+                        defaultSecs
+                    );
+                }
+            })
+            .catch(function () { /* transient — retry next tick */ });
+    }
+    pollRecent();
+    setInterval(pollRecent, 2500);
+})();
+
+// Camera feed health — if the MJPEG stream drops, show "offline"
+// and keep retrying so it recovers when the Pi scanner returns.
 (function () {
     var feed = document.getElementById('camFeed');
     var down = document.getElementById('camDown');
@@ -89,7 +208,6 @@
         feed.style.display = 'none';
         if (down) down.style.display = 'flex';
         setTimeout(function () {
-            // Cache-bust the URL so the browser actually re-requests.
             var base = feed.src.split('?')[0];
             feed.src = base + '?t=' + Date.now();
         }, 4000);
@@ -100,8 +218,65 @@
     });
 })();
 
-// Analog clock — only runs when the canvas is present (i.e. no
-// camera feed configured).
+// Camera sleep / wake. The camera follows a schedule (set in the
+// dashboard Settings). Outside its hours we hide the feed and show
+// a "sleeping" panel; tapping it asks the server to wake the camera
+// for a while. We poll so the panel appears/disappears on its own
+// as the scheduled windows come and go.
+(function () {
+    var wrap  = document.getElementById('camWrap');
+    var sleep = document.getElementById('camSleep');
+    var hint  = document.getElementById('camHint');
+    if (!sleep) return;   // no camera configured on this kiosk
+
+    function applyState(active) {
+        if (active) {
+            if (wrap) wrap.style.display = '';
+            if (hint) hint.style.display = '';
+            sleep.style.display = 'none';
+        } else {
+            if (wrap) wrap.style.display = 'none';
+            if (hint) hint.style.display = 'none';
+            sleep.style.display = '';
+        }
+    }
+
+    function pollState() {
+        fetch('/camera-state', { cache: 'no-store' })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { if (d && d.ok) applyState(d.active !== false); })
+            .catch(function () { /* transient */ });
+    }
+
+    var waking = false;
+    var title = sleep.querySelector('.cam-sleep-title');
+    function wake() {
+        if (waking) return;
+        waking = true;
+        if (title) title.textContent = 'Waking camera...';
+        fetch('/camera-wake', { method: 'POST' })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                waking = false;
+                if (title) title.textContent = 'Camera asleep';
+                if (d && d.ok) applyState(d.active !== false);
+            })
+            .catch(function () {
+                waking = false;
+                if (title) title.textContent = 'Camera asleep';
+            });
+    }
+
+    sleep.addEventListener('click', wake);
+    sleep.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); wake(); }
+    });
+
+    pollState();
+    setInterval(pollState, 15000);
+})();
+
+// Analog clock (carried over from original AnalogClock.html)
 (function () {
     var canvas = document.getElementById('analog');
     if (!canvas) return;

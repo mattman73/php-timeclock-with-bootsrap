@@ -13,6 +13,19 @@
             Company name (used in emails)
             <input type="text" name="company_name" value="<%= settings.company_name || 'Jondo' %>">
         </label>
+        <label>
+            Dashboard public URL
+            <input type="text" name="dashboard_base_url"
+                   value="<%= settings.dashboard_base_url || '' %>"
+                   placeholder="http://192.168.x.x:3000">
+            <span class="muted small" style="display:block; margin-top:4px;">
+                The address staff and managers actually reach the
+                dashboard at. Email and WhatsApp notifications include
+                a tappable link to this URL + the relevant page (e.g.
+                /timeoff/admin). No trailing slash. Leave blank to
+                fall back to the local <code>http://localhost</code>.
+            </span>
+        </label>
     </div>
     <p>
         <label style="font-weight:normal">
@@ -45,6 +58,91 @@
 </section>
 
 <section class="card">
+    <h2>WhatsApp notifications</h2>
+    <p class="muted small">
+        Sends late-staff and time-off alerts to managers on WhatsApp,
+        <strong>in addition to</strong> email. Uses the Meta WhatsApp
+        Business Cloud API. Note: the API cannot post into a WhatsApp
+        group &mdash; it sends to individual numbers, and a
+        business-initiated message must use a pre-approved template
+        with a single <code>{{1}}</code> body variable.
+    </p>
+    <p>
+        <label style="font-weight:normal">
+            <input type="checkbox" name="whatsapp_enabled" value="1"
+                   <%= Number(settings.whatsapp_enabled) ? 'checked' : '' %>>
+            Send WhatsApp alerts to managers
+        </label>
+    </p>
+    <div class="field-grid">
+        <label>
+            Phone number ID
+            <input type="text" name="whatsapp_phone_id"
+                   value="<%= settings.whatsapp_phone_id || '' %>"
+                   placeholder="from Meta -> WhatsApp -> API Setup">
+        </label>
+        <label>
+            Access token
+            <input type="password" name="whatsapp_token" autocomplete="off"
+                   value="<%= settings.whatsapp_token ? '__keep__' : '' %>"
+                   placeholder="permanent token from Meta">
+        </label>
+        <label>
+            Message template name
+            <input type="text" name="whatsapp_template"
+                   value="<%= settings.whatsapp_template || '' %>"
+                   placeholder="e.g. jondo_alert">
+        </label>
+        <label>
+            Template language
+            <%
+            var langs = [
+                ['en',    'English'],
+                ['en_GB', 'English (UK)'],
+                ['en_US', 'English (US)'],
+                ['cy',    'Welsh'],
+                ['ga',    'Irish'],
+                ['fr',    'French'],
+                ['fr_FR', 'French (France)'],
+                ['de',    'German'],
+                ['es',    'Spanish'],
+                ['es_ES', 'Spanish (Spain)'],
+                ['it',    'Italian'],
+                ['nl',    'Dutch'],
+                ['pl',    'Polish'],
+                ['pt_PT', 'Portuguese (Portugal)'],
+                ['pt_BR', 'Portuguese (Brazil)']
+            ];
+            var curLang = settings.whatsapp_lang || 'en_GB';
+            var known = langs.some(function (l) { return l[0] === curLang; });
+            %>
+            <select name="whatsapp_lang">
+                <% if (!known && curLang) { %>
+                    <option value="<%= curLang %>" selected><%= curLang %> (current)</option>
+                <% } %>
+                <% langs.forEach(function (l) { %>
+                    <option value="<%= l[0] %>" <%= curLang === l[0] ? 'selected' : '' %>><%= l[1] %> &mdash; <%= l[0] %></option>
+                <% }); %>
+            </select>
+            <span class="muted small" style="display:block; margin-top:4px;">
+                Must match the language your approved template was
+                created in (shown on the Message Templates page in Meta).
+            </span>
+        </label>
+        <label>
+            Manager numbers
+            <input type="text" name="whatsapp_recipients"
+                   value="<%= settings.whatsapp_recipients || '' %>"
+                   placeholder="447911123456, 447700900111">
+            <span class="muted small" style="display:block; margin-top:4px;">
+                Comma-separated, international format, digits only
+                (no +, no spaces). Each number gets the alert.
+            </span>
+        </label>
+    </div>
+</section>
+
+<section class="card">
     <h2>Kiosk</h2>
     <div class="field-grid">
         <label>
@@ -65,6 +163,55 @@
                 The MJPEG stream from the Raspberry Pi face scanner.
                 When set, the clock-in page shows a live camera preview.
                 Leave blank to hide it.
+            </span>
+        </label>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Camera schedule</h2>
+    <p class="muted small">
+        The face-recognition camera is mainly needed at the start and
+        end of the day. With a schedule set, the Pi pauses face
+        recognition outside these two windows and the kiosk shows a
+        "sleeping" image &mdash; staff can tap it to wake the camera
+        for a short while.
+    </p>
+    <p>
+        <label style="font-weight:normal">
+            <input type="checkbox" name="camera_schedule_enabled" value="1"
+                   <%= Number(settings.camera_schedule_enabled) ? 'checked' : '' %>>
+            Use a camera schedule (otherwise the camera stays on all the time)
+        </label>
+    </p>
+    <div class="field-grid">
+        <label>
+            Morning &mdash; wake at
+            <input type="time" name="camera_morning_on"
+                   value="<%= settings.camera_morning_on || '07:00' %>">
+        </label>
+        <label>
+            Morning &mdash; sleep at
+            <input type="time" name="camera_morning_off"
+                   value="<%= settings.camera_morning_off || '10:00' %>">
+        </label>
+        <label>
+            Evening &mdash; wake at
+            <input type="time" name="camera_evening_on"
+                   value="<%= settings.camera_evening_on || '16:00' %>">
+        </label>
+        <label>
+            Evening &mdash; sleep at
+            <input type="time" name="camera_evening_off"
+                   value="<%= settings.camera_evening_off || '19:00' %>">
+        </label>
+        <label>
+            Wake duration (minutes)
+            <input type="number" name="camera_wake_minutes" min="1" max="240"
+                   value="<%= settings.camera_wake_minutes == null ? 15 : settings.camera_wake_minutes %>">
+            <span class="muted small" style="display:block; margin-top:4px;">
+                When someone taps the sleeping image, the camera wakes
+                for this many minutes, then sleeps again.
             </span>
         </label>
     </div>
@@ -112,9 +259,51 @@
     <form method="post" action="/settings/test-email" style="display:inline">
         <button type="submit" class="btn-secondary">Send test email</button>
     </form>
+    <form method="post" action="/settings/test-whatsapp" style="display:inline; margin-left:8px;">
+        <button type="submit" class="btn-secondary">Send test WhatsApp</button>
+    </form>
     <form method="post" action="/settings/run-alerts" style="display:inline; margin-left:8px;">
         <button type="submit" class="btn-secondary">Run alert check now</button>
     </form>
+</section>
+
+<section class="card" style="margin-top:20px;">
+    <h2>Build</h2>
+    <% if (typeof build !== 'undefined' && build && build.available) { %>
+        <p class="muted small" style="line-height:1.7;">
+            <strong>Commit:</strong>
+            <code><%= build.commitShort || '(unknown)' %></code>
+            <% if (build.dirty) { %>
+                <span style="color:var(--jondo-red, #c00); font-weight:600;"> (uncommitted local edits)</span>
+            <% } %>
+            <br>
+            <% if (build.branch) { %>
+                <strong>Branch:</strong> <code><%= build.branch %></code><br>
+            <% } %>
+            <% if (build.subject) { %>
+                <strong>Last change:</strong> <em><%= build.subject %></em><br>
+            <% } %>
+            <% if (build.commitDate) { %>
+                <strong>Committed:</strong>
+                <%= new Date(build.commitDate).toLocaleString('en-GB') %><br>
+            <% } %>
+            <% if (build.deployedAt) { %>
+                <strong>Server updated:</strong>
+                <%= new Date(build.deployedAt).toLocaleString('en-GB') %>
+            <% } %>
+        </p>
+        <p class="muted small">
+            If the commit here doesn't match the latest on GitHub
+            after running <code>update-dashboard.sh</code>, restart
+            the service:
+            <code>sudo systemctl restart jondo-dashboard.service</code>.
+        </p>
+    <% } else { %>
+        <p class="muted small">
+            Build information isn't available (not a git checkout, or
+            <code>git</code> isn't installed).
+        </p>
+    <% } %>
 </section>
 
 <%- include('partials/foot') %>

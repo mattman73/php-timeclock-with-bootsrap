@@ -16,6 +16,12 @@ Only the capture thread ever touches the camera object — the CSI
 camera allows a single consumer, so everything else works off the
 shared latest-frame.
 
+Camera schedule: the dashboard can put the camera on a schedule
+(see Settings). When it says the camera is "asleep" the detection
+loop pauses face recognition — but the capture thread and MJPEG
+stream keep running, so the kiosk preview still works the instant
+someone taps to wake it.
+
 Anti-double-clock-in defences (unchanged):
   - cooldown per employee
   - a face must be the dominant subject for MIN_HOLD_SEC
@@ -37,6 +43,7 @@ import numpy as np
 import requests
 from dotenv import load_dotenv
 
+from buzzer import Buzzer
 from camera import CameraSource
 from sync import FaceCache
 
@@ -65,6 +72,10 @@ DEFAULTS = {
     "LOG_LEVEL": "INFO",
     "STREAM_ENABLED": "true",
     "STREAM_PORT": "8080",
+    "BUZZER_ENABLED": "true",
+    "BUZZER_PIN": "18",
+    "BUZZER_REJECT_COOLDOWN": "4",
+    "STATE_POLL_SEC": "15",
 }
 
 
@@ -263,6 +274,25 @@ def post_audit(base_url, token, events, pi_host):
         log.warning("audit post failed: %s", e)
 
 
+def get_scanner_active(base_url, token, current):
+    """Ask the dashboard whether the scanner should be matching faces
+    right now (the camera follows a schedule). On any error keep the
+    current state so a network blip doesn't flip the scanner."""
+    try:
+        r = requests.get(
+            base_url.rstrip("/") + "/api/scanner-state",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=8,
+        )
+        if r.ok:
+            data = r.json()
+            return bool(data.get("active", True))
+        log.debug("scanner-state HTTP %s", r.status_code)
+    except Exception as e:
+        log.debug("scanner-state poll failed: %s", e)
+    return current
+
+
 # ---------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------
@@ -287,6 +317,10 @@ def main():
     audit_every = float(cfg("AUDIT_BATCH_EVERY"))
     stream_enabled = cfg("STREAM_ENABLED").lower() in ("1", "true", "yes", "on")
     stream_port = int(cfg("STREAM_PORT"))
+    buzzer_enabled = cfg("BUZZER_ENABLED").lower() in ("1", "true", "yes", "on")
+    buzzer_pin = int(cfg("BUZZER_PIN"))
+    reject_beep_cooldown = float(cfg("BUZZER_REJECT_COOLDOWN"))
+    state_poll_sec = float(cfg("STATE_POLL_SEC"))
 
     cache = FaceCache(Path(cfg("CACHE_DIR")))
     cache.load_from_disk()
@@ -300,6 +334,8 @@ def main():
         height=int(cfg("CAMERA_HEIGHT")),
     )
     log.info("camera kind = %s", cam.kind)
+
+    buzzer = Buzzer(enabled=buzzer_enabled, pin=buzzer_pin)
 
     shared = SharedState()
     stop_event = threading.Event()
@@ -317,9 +353,14 @@ def main():
 
     last_punch = {}
     last_match = {"emp": None, "since": 0.0}
+    last_reject_beep = 0.0
     last_sync = time.time()
     last_audit_flush = time.time()
     audit_buf = []
+
+    # Camera schedule: poll the dashboard for awake/asleep state.
+    scanner_active = True
+    last_state_poll = 0.0
 
     log.info("scanner running (threshold=%.2f, hold=%.1fs, cooldown=%ds)",
              threshold, min_hold, int(cooldown))
@@ -329,6 +370,23 @@ def main():
             rgb_full = shared.get_frame()
             if rgb_full is None:
                 time.sleep(0.1)
+                continue
+
+            # Honour the camera schedule. When the dashboard says the
+            # camera is "asleep" we pause face recognition entirely —
+            # but the capture thread + MJPEG stream keep running, so
+            # the kiosk preview is instant when someone taps to wake.
+            tick = time.time()
+            if tick - last_state_poll >= state_poll_sec:
+                new_active = get_scanner_active(base_url, token, scanner_active)
+                if new_active != scanner_active:
+                    log.info("camera schedule: scanner %s",
+                             "ACTIVE" if new_active else "asleep")
+                scanner_active = new_active
+                last_state_poll = tick
+            if not scanner_active:
+                shared.set_detections([])
+                time.sleep(0.3)
                 continue
 
             if frame_scale != 1.0:
@@ -385,6 +443,7 @@ def main():
                         confidence = max(0.0, min(1.0, 1.0 - (match_dist or 1.0)))
                         res = post_punch(base_url, token, match_emp, confidence, pi_host)
                         if res:
+                            buzzer.success()
                             last_punch[match_emp] = now
                             last_match = {"emp": None, "since": 0.0}
                     else:
@@ -397,6 +456,11 @@ def main():
                 elif boxes:
                     audit_buf.append({"action": "rejected", "confidence": None,
                                       "reason": "no match within threshold"})
+                    # This branch fires every frame an unknown face is
+                    # held — throttle the buzz so it doesn't machine-gun.
+                    if now - last_reject_beep > reject_beep_cooldown:
+                        buzzer.reject()
+                        last_reject_beep = now
 
             if now - last_sync > sync_every:
                 try:
@@ -415,6 +479,7 @@ def main():
         stop_event.set()
         if stream_server is not None:
             stream_server.shutdown()
+        buzzer.close()
         cam.close()
 
 

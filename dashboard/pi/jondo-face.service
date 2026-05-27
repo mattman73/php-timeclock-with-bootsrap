@@ -1,0 +1,34 @@
+# Jondo Time Clock - face scanner systemd service.
+#
+# Install:
+#   sudo cp jondo-face.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now jondo-face.service
+#
+# Watch the logs:
+#   journalctl -u jondo-face.service -f
+#
+# IMPORTANT - before enabling:
+#   1. Stop any manual run of scanner.py (Ctrl+C in its terminal).
+#   2. Adjust User=, WorkingDirectory= and ExecStart= below to the
+#      real location of scanner.py and its venv on your Pi. To find
+#      them, in the folder that contains scanner.py run:
+#         pwd                 # -> use as WorkingDirectory
+#         ls venv/bin/python  # -> confirm the venv python path
+#      (WorkingDirectory + "/venv/bin/python" is the ExecStart path.)
+
+[Unit]
+Description=Jondo Time Clock face scanner
+After=network-online.target jondo-dashboard.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/jondo-time-clock/dashboard/pi
+ExecStart=/home/pi/jondo-time-clock/dashboard/pi/venv/bin/python scanner.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

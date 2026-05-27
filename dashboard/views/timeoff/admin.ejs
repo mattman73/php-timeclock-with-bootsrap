@@ -53,6 +53,7 @@
                 <th>Hours</th>
                 <th>Status</th>
                 <th>Decided</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
@@ -71,6 +72,14 @@
                     <%= r.reviewed_at %>
                     <% if (r.reviewed_by) { %><br>by <%= r.reviewed_by %><% } %>
                     <% if (r.review_note) { %><br><em><%= r.review_note %></em><% } %>
+                </td>
+                <td>
+                    <% if (r.status === 'approved') { %>
+                        <form method="post" action="/timeoff/<%= r.id %>/cancel"
+                              onsubmit="return confirm('Cancel this approved time off? The employee will be emailed.');">
+                            <button type="submit" class="btn-danger">Cancel</button>
+                        </form>
+                    <% } %>
                 </td>
             </tr>
         <% }) %>

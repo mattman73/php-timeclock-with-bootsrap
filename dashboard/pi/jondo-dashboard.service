@@ -1,0 +1,29 @@
+# Jondo Time Clock - dashboard (Node web app) systemd service.
+#
+# Install:
+#   sudo cp jondo-dashboard.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now jondo-dashboard.service
+#
+# Watch the logs:
+#   journalctl -u jondo-dashboard.service -f
+#
+# Adjust User=, WorkingDirectory= and the node path below to match
+# your Pi (check the node path with:  which node).
+
+[Unit]
+Description=Jondo Time Clock dashboard (Node web app)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/jondo-time-clock/dashboard
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
